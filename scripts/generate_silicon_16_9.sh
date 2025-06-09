@@ -67,10 +67,14 @@ if [ -z "$LANG" ]; then
     [gitignore]=gitignore
   )
   LANG="${ext_map[$EXT]}"
+  if [ -z "$LANG" ]; then
+    echo "Warning: Could not detect language from extension '$EXT'. Defaulting to plaintext. You can specify a language as the second argument."
+    LANG="plaintext"
+  fi
 fi
 
 # Build silicon command
-CMD=(silicon "$INPUT" -o "$OUT" -t "$THEME" --background "$BACKGROUND" --no-window-controls --pad-horiz "$PAD_HORIZ" --pad-vert "$PAD_VERT" --font "$FONT")
+CMD=(silicon "$INPUT" -o "$OUT" --theme "$THEME" --background "$BACKGROUND" --no-window-controls --pad-horiz "$PAD_HORIZ" --pad-vert "$PAD_VERT" --font "$FONT")
 if [ -n "$LANG" ]; then
   CMD+=(-l "$LANG")
 fi
