@@ -14,8 +14,8 @@ LANG="$2"
 OUT="${INPUT%.*}.png"
 
 # 16:9 padding for 1920x1080 output (adjust as needed)
-PAD_HORIZ=520
-PAD_VERT=240
+PAD_HORIZ=0
+PAD_VERT=60
 
 # Theme and font settings
 THEME="GitHub"
@@ -85,7 +85,27 @@ fi
 echo "Running: ${CMD[*]}"
 "${CMD[@]}"
 
-# Enforce 16:9 aspect ratio (1920x1080) using ImageMagick
-convert "$OUT" -resize 1920x1080^ -background "$BACKGROUND" -gravity center -extent 1920x1080 "$OUT"
+# Enforce 16:9 aspect ratio (1920x1080) with a blurred background and window controls using ImageMagick
+
+TMP_BG="${OUT%.png}_bg.png"
+
+# 1. Scale silicon output to 1920px width (preserve aspect ratio)
+convert "$OUT" -resize 1920x "$OUT"
+
+# 2. Create blurred, stretched background
+convert "$OUT" -resize 1920x1080\! -blur 0x20 "$TMP_BG"
+
+# 3. Overlay the original image, now 1920px wide, centered
+convert "$TMP_BG" "$OUT" -gravity center -composite "$OUT"
+
+# 4. Draw window controls (red, yellow, green circles at top left)
+convert "$OUT" \
+  -fill "#ff5f56" -draw "circle 40,30 50,30" \
+  -fill "#ffbd2e" -draw "circle 70,30 80,30" \
+  -fill "#27c93f" -draw "circle 100,30 110,30" \
+  "$OUT"
+
+# 5. Clean up temp file
+rm -f "$TMP_BG"
 
 echo "Image generated: $OUT"
