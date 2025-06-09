@@ -1,0 +1,5 @@
+This is a short line.
+This is a very long line that should be wrapped by the script because it is much longer than eighty characters and should demonstrate the wrapping functionality.
+Another short line.
+A line that is exactly eighty characters long should not be wrapped at all by the script, right?
+This line is supercalifragilisticexpialidocioussupercalifragilisticexpialidocioussupercalifragilisticexpialidocious and will test hard cuts.
