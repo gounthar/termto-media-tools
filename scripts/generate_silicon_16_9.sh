@@ -68,8 +68,10 @@ if [ -z "$LANG" ]; then
   )
   LANG="${ext_map[$EXT]}"
   if [ -z "$LANG" ]; then
-    echo "Warning: Could not detect language from extension '$EXT'. Defaulting to plaintext. You can specify a language as the second argument."
-    LANG="plaintext"
+    echo "Warning: Could not detect language from extension '$EXT'. No language will be specified. You can specify a language as the second argument."
+    echo "Supported languages:"
+    silicon --list-languages || echo "Could not list languages: silicon not found in PATH."
+    # Do not set LANG, so -l is omitted
   fi
 fi
 
