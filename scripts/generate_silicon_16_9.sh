@@ -92,10 +92,16 @@ TMP_BG="${OUT%.png}_bg.png"
 # 1. Scale silicon output to 1920px width (preserve aspect ratio)
 convert "$OUT" -resize 1920x "$OUT"
 
+# 1b. If height > 1080, scale down to fit within 1920x1080 (preserve aspect ratio)
+HEIGHT=$(identify -format "%h" "$OUT")
+if [ "$HEIGHT" -gt 1080 ]; then
+  convert "$OUT" -resize 1920x1080 "$OUT"
+fi
+
 # 2. Create blurred, stretched background
 convert "$OUT" -resize 1920x1080\! -blur 0x20 "$TMP_BG"
 
-# 3. Overlay the original image, now 1920px wide, centered
+# 3. Overlay the original image, now max 1920x1080, centered
 convert "$TMP_BG" "$OUT" -gravity center -composite "$OUT"
 
 # 4. Draw window controls (red, yellow, green circles at top left)
