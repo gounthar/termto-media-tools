@@ -13,9 +13,9 @@ INPUT="$1"
 LANG="$2"
 OUT="${INPUT%.*}.png"
 
-# 16:9 padding for 1280x720 output (adjust as needed)
-PAD_HORIZ=340
-PAD_VERT=160
+# 16:9 padding for 1920x1080 output (adjust as needed)
+PAD_HORIZ=520
+PAD_VERT=240
 
 # Theme and font settings
 THEME="GitHub"
@@ -69,8 +69,9 @@ if [ -z "$LANG" ]; then
   LANG="${ext_map[$EXT]}"
   if [ -z "$LANG" ]; then
     echo "Warning: Could not detect language from extension '$EXT'. No language will be specified. You can specify a language as the second argument."
-    echo "Supported languages:"
-    silicon --list-languages || echo "Could not list languages: silicon not found in PATH."
+    echo "Common supported languages (use as second argument):"
+    echo "python, javascript, typescript, bash, ruby, rust, c, cpp, java, go, php, html, css, json, yaml, toml, xml, sql, markdown, perl, swift, kotlin, dart, haskell, elisp, elixir, erlang, scala, lua, batch, powershell, ini, nginx, dockerfile, makefile, gitignore"
+    echo "For the full list, see: https://github.com/Aloxaf/silicon#supported-languages"
     # Do not set LANG, so -l is omitted
   fi
 fi
@@ -83,4 +84,8 @@ fi
 
 echo "Running: ${CMD[*]}"
 "${CMD[@]}"
+
+# Enforce 16:9 aspect ratio (1920x1080) using ImageMagick
+convert "$OUT" -resize 1920x1080^ -background "$BACKGROUND" -gravity center -extent 1920x1080 "$OUT"
+
 echo "Image generated: $OUT"
