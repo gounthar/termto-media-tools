@@ -78,7 +78,7 @@ if [ -f "${FILENAME}_ppt_16_9.mp4" ] && [ -s "${FILENAME}_ppt_16_9.mp4" ]; then
       echo -e "\033[1;33mWarning: Temp directory $tmp_dir could not be deleted.\033[0m"
     fi
   fi
-  [ -f "${FILENAME}.cast" ] && rm -f "${FILENAME}.cast"
+  # [ -f "${FILENAME}.cast" ] && rm -f "${FILENAME}.cast"
   [ -f "${FILENAME}_ppt.mp4" ] && rm -f "${FILENAME}_ppt.mp4"
   [ -f "${FILENAME}/result.mp4" ] && rm -f "${FILENAME}/result.mp4"
 else
