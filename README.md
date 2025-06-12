@@ -1,5 +1,46 @@
 # termto-media-tools
 
+## shorten_gap.sh
+
+A shell script to adjust the timing of events in an asciinema `.cast` file by shortening the gap between a specified event and its previous event.
+
+### Purpose
+
+Given a `.cast` file (asciinema format: first line is a JSON object header, subsequent lines are JSON arrays for events), a target timestamp, and an output file, the script will reduce the time gap between the specified event and the previous event to the next half second (by default), or to a custom gap if specified. All subsequent events are shifted accordingly.
+
+### Usage
+
+```sh
+./scripts/shorten_gap.sh input.cast target_timestamp output.cast [gap]
+```
+
+- `input.cast`:         Input .cast file (asciinema format)
+- `target_timestamp`:   Timestamp to adjust (e.g., 231.281972)
+- `output.cast`:        Output file path
+- `gap` (optional):     Custom gap in seconds (default: "next half second")
+
+### How the "next half second" works
+
+If the previous event's timestamp is, for example, `37.935336`, the next half second is `38.0` (rounded up to the next 0.5s). The script will set the gap to this value unless a custom gap is provided.
+
+### Example
+
+```sh
+./scripts/shorten_gap.sh mysession.cast 231.356032 output.cast
+```
+This will set the gap between the event at `231.356032` and its previous event to the next half second.
+
+To use a custom gap (e.g., 0.7 seconds):
+
+```sh
+./scripts/shorten_gap.sh mysession.cast 231.356032 output.cast 0.7
+```
+
+### Notes
+
+- The script will attempt to install `gawk` automatically if it is not present, using the most common package managers (`apt-get`, `dnf`, `yum`, `pacman`, `brew`, `choco`). If installation fails, you will be prompted to install `gawk` manually.
+- The script is compatible with standard asciinema `.cast` files (header line as JSON object, event lines as JSON arrays).
+
 This repository contains scripts and documentation for converting terminal recordings into video formats compatible with PowerPoint presentations. The project includes tools for creating both standard and 4K resolution videos from terminal sessions.
 
 ## Overview
