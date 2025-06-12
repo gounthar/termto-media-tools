@@ -1,4 +1,34 @@
 # termto-media-tools
+## flatten_timestamps.sh
+
+A shell script to set the timestamps of all events in a given range to a single timestamp in an asciinema `.cast` file.
+
+### Purpose
+
+Given a `.cast` file (asciinema format: first line is a JSON object header, subsequent lines are JSON arrays for events), a start timestamp, and an end timestamp, the script will set the timestamp of all event lines between these two values (inclusive) to the start timestamp. All other lines are left unchanged.
+
+### Usage
+
+```sh
+./scripts/flatten_timestamps.sh input.cast start_timestamp end_timestamp output.cast
+```
+
+- `input.cast`:         Input .cast file (asciinema format)
+- `start_timestamp`:    Start of range (inclusive)
+- `end_timestamp`:      End of range (inclusive)
+- `output.cast`:        Output file path
+
+### Example
+
+```sh
+./scripts/flatten_timestamps.sh mysession.cast 0.000000 23.844826 output.cast
+```
+This will set the timestamp of all event lines between `0.000000` and `23.844826` (inclusive) to `0.000000`.
+
+### Notes
+
+- The script will attempt to install `gawk` automatically if it is not present, using the most common package managers (`apt-get`, `dnf`, `yum`, `pacman`, `brew`, `choco`). If installation fails, you will be prompted to install `gawk` manually.
+- The script is compatible with standard asciinema `.cast` files (header line as JSON object, event lines as JSON arrays).
 
 ## shorten_gap.sh
 
