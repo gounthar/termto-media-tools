@@ -10,6 +10,7 @@ source "$SCRIPT_DIR/cast2video_core.sh"
 # Configuration
 GEOMETRY="96x24"           # Terminal dimensions (very close to 16:9 for typical terminal fonts)
 SCALE_FACTOR=4             # Reduced to prevent memory issues
+OUTPUT_RES="1920x1080"
 FILENAME="terminal_recording_$(date +%Y%m%d_%H%M%S)"
 
 # Check dependencies
@@ -26,8 +27,8 @@ termtosvg record -g "$GEOMETRY" "$FILENAME.cast" -c 'ssh -p 8022 -l poddingue 19
 tmp_dir=$(mktemp -d)
 
 convert_cast_to_video "$FILENAME.cast" "$GEOMETRY" "$SCALE_FACTOR"
-convert_to_16_9 "$FILENAME"
-verify_and_cleanup "$FILENAME" "$tmp_dir"
+convert_to_16_9 "$FILENAME" "$OUTPUT_RES" "${FILENAME}_ppt_16_9.mp4"
+verify_and_cleanup "$FILENAME" "$tmp_dir" "${FILENAME}_ppt_16_9.mp4" "1920" "1080"
 
 # Final instructions
 echo -e "\n\033[1;33mInsert into PowerPoint:\033[0m"

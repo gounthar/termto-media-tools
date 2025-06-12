@@ -39,27 +39,34 @@ convert_cast_to_video() {
 
 convert_to_16_9() {
     local basename="$1"
-    ffmpeg -y -i "${basename}_ppt.mp4" -vf "scale=w=1920:h=1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2" \
-      -c:v libx264 -profile:v high -level 4.0 -pix_fmt yuv420p -an -movflags +faststart -preset slow "${basename}_ppt_16_9.mp4"
+    local output_res="${2:-1920x1080}"
+    local output_file="${3:-${basename}_ppt_16_9.mp4}"
+    local width="${output_res%x*}"
+    local height="${output_res#*x}"
+    ffmpeg -y -i "${basename}_ppt.mp4" -vf "scale=w=${width}:h=${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2" \
+      -c:v libx264 -profile:v high -level 4.0 -pix_fmt yuv420p -an -movflags +faststart -preset slow "$output_file"
 }
 
 verify_and_cleanup() {
     local basename="$1"
     local tmp_dir="$2"
-    if [ -f "${basename}_ppt_16_9.mp4" ] && [ -s "${basename}_ppt_16_9.mp4" ]; then
+    local output_file="${3:-${basename}_ppt_16_9.mp4}"
+    local expected_width="${4:-1920}"
+    local expected_height="${5:-1080}"
+    if [ -f "$output_file" ] && [ -s "$output_file" ]; then
       echo -e "\n\033[1;32m=== Conversion Complete ===\033[0m"
-      echo -e "Output file: \033[1;35m${basename}_ppt_16_9.mp4\033[0m"
+      echo -e "Output file: \033[1;35m${output_file}\033[0m"
       # Verify dimensions and aspect ratio
       echo -n "Verifying format: "
-      ffprobe_out=$(ffprobe -v error -select_streams v:0 -show_entries stream=width,height,display_aspect_ratio -of csv=s=x:p=0 "${basename}_ppt_16_9.mp4")
+      ffprobe_out=$(ffprobe -v error -select_streams v:0 -show_entries stream=width,height,display_aspect_ratio -of csv=s=x:p=0 "$output_file")
       echo "$ffprobe_out"
       width=$(echo "$ffprobe_out" | cut -d'x' -f1)
       height=$(echo "$ffprobe_out" | cut -d'x' -f2)
       dar=$(echo "$ffprobe_out" | cut -d'x' -f3)
-      if [ "$width" = "1920" ] && [ "$height" = "1080" ]; then
-        echo -e "\033[1;32mConfirmed: Output is 1920x1080 (16:9)\033[0m"
+      if [ "$width" = "$expected_width" ] && [ "$height" = "$expected_height" ]; then
+        echo -e "\033[1;32mConfirmed: Output is ${expected_width}x${expected_height} (16:9)\033[0m"
       else
-        echo -e "\033[1;33mWarning: Output is $width x $height (DAR $dar), not exactly 1920x1080 (16:9)\033[0m"
+        echo -e "\033[1;33mWarning: Output is $width x $height (DAR $dar), not exactly ${expected_width}x${expected_height} (16:9)\033[0m"
       fi
       # Clean up intermediary files
       if [ -n "$tmp_dir" ] && [ -d "$tmp_dir" ]; then
