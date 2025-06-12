@@ -8,6 +8,20 @@ The project consists of the following components:
 
 ### Scripts
 
+- **scripts/trim_cast.sh**: Manipulates asciinema `.cast` files by removing all events with timestamps in a specified range and rebasing the remaining timestamps.  
+  **Usage:**  
+  `trim_cast.sh input.cast start_time end_time output.cast`  
+  - Removes all events with timestamps `>= start_time` and `< end_time`.
+  - Keeps all other events.
+  - Rebases timestamps so the first kept event is at 0.
+  - Preserves the header unchanged.
+  - Outputs each event as a single-line JSON array (asciinema v2 format).
+  - Handles Windows line endings and whitespace robustly.
+  - Requires `jq` to be installed.
+  **Example:**  
+  `trim_cast.sh terminal_recording.cast 0.0 14.09051 trimmed.cast`  
+  This will remove all events from 0.0 up to (but not including) 14.09051 seconds, rebase the remaining events, and write the result to `trimmed.cast`.
+
 - **scripts/termtopptvideo.sh**: A script that converts terminal recordings into 16:9 MP4 videos suitable for PowerPoint. It handles recording, dependency checks, and video conversion using Docker. The script also verifies the output format and provides instructions for inserting the video into PowerPoint.
 
 - **scripts/termtopptvideo_4k.sh**: Similar to the standard script, this one specifically creates 4K resolution videos (3840x2160). It follows the same process of recording, checking dependencies, and using Docker for conversion, ensuring the output is suitable for high-resolution presentations.
