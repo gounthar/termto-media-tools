@@ -3,7 +3,16 @@
 # Speed up a segment of a video without losing quality
 # Usage: speedup_segment.sh input.mp4 output.mp4 speed_factor start_time end_time
 
-set -e
+set -euo pipefail
+
+log() {
+  echo -e "\033[1;34m$1\033[0m"
+}
+
+error_exit() {
+  echo -e "\033[1;31mERROR: $1\033[0m" >&2
+  exit 1
+}
 
 if [ "$#" -ne 5 ]; then
   echo "Usage: $0 input.mp4 output.mp4 speed_factor start_time end_time"
@@ -31,22 +40,40 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# 1. Extract segments
-# Part 1: before start
-ffmpeg -y -hide_banner -loglevel error -ss 0 -to "$START" -i "$INPUT" -c copy "$TMP1"
+log "Extracting segment 1 (before $START)..."
+set -x
+ffmpeg -y -hide_banner -ss 0 -to "$START" -i "$INPUT" -c copy "$TMP1" || error_exit "Failed to extract segment 1"
+set +x
+log "Segment 1 extraction done."
 
-# Part 2: to be sped up
-ffmpeg -y -hide_banner -loglevel error -ss "$START" -to "$END" -i "$INPUT" -c copy "$TMP2"
+log "Extracting segment 2 (from $START to $END)..."
+set -x
+ffmpeg -y -hide_banner -ss "$START" -to "$END" -i "$INPUT" -c copy "$TMP2" || error_exit "Failed to extract segment 2"
+set +x
+log "Segment 2 extraction done."
 
-# Part 3: after end
-ffmpeg -y -hide_banner -loglevel error -ss "$END" -i "$INPUT" -c copy "$TMP3"
+log "Extracting segment 3 (after $END)..."
+set -x
+ffmpeg -y -hide_banner -ss "$END" -i "$INPUT" -c copy "$TMP3" || error_exit "Failed to extract segment 3"
+set +x
+log "Segment 3 extraction done."
 
 # 2. Speed up the middle segment (video and audio if present)
 # For video: setpts=PTS/SPEED
 # For audio: atempo supports 0.5-2.0 per filter, so chain if needed
 
-HAS_AUDIO=$(ffprobe -v error -select_streams a -show_entries stream=codec_type -of csv=p=0 "$TMP2" | grep -c audio)
+log "Checking for audio in segment 2..."
+set -x
+FFPROBE_OUT=$(ffprobe -v error -select_streams a -show_entries stream=codec_type -of csv=p=0 "$TMP2" || true)
+set +x
+log "ffprobe output: '$FFPROBE_OUT'"
+HAS_AUDIO=0
+if [[ "$FFPROBE_OUT" == *audio* ]]; then
+  HAS_AUDIO=1
+fi
+log "HAS_AUDIO=$HAS_AUDIO"
 
+log "Speeding up segment 2 ($START to $END) by $SPEED x..."
 if [ "$HAS_AUDIO" -eq 1 ]; then
   ATEMPO_FILTER=""
   REMAINING_SPEED="$SPEED"
@@ -60,21 +87,29 @@ if [ "$HAS_AUDIO" -eq 1 ]; then
   done
   ATEMPO_FILTER="${ATEMPO_FILTER}atempo=$REMAINING_SPEED"
 
-  ffmpeg -y -hide_banner -loglevel error -i "$TMP2" \
+  set -x
+  ffmpeg -y -hide_banner -i "$TMP2" \
     -filter_complex "[0:v]setpts=PTS/$SPEED[v];[0:a]$ATEMPO_FILTER[a]" \
-    -map "[v]" -map "[a]" -c:v libx264 -crf 18 -preset veryfast -c:a aac -b:a 192k "${TMP2}.spedup.mp4"
+    -map "[v]" -map "[a]" -c:v libx264 -crf 18 -preset veryfast -c:a aac -b:a 192k "${TMP2}.spedup.mp4" || error_exit "Failed to speed up segment 2 (with audio)"
+  set +x
 else
-  ffmpeg -y -hide_banner -loglevel error -i "$TMP2" \
+  set -x
+  ffmpeg -y -hide_banner -i "$TMP2" \
     -filter_complex "[0:v]setpts=PTS/$SPEED[v]" \
-    -map "[v]" -c:v libx264 -crf 18 -preset veryfast -an "${TMP2}.spedup.mp4"
+    -map "[v]" -c:v libx264 -crf 18 -preset veryfast -an "${TMP2}.spedup.mp4" || error_exit "Failed to speed up segment 2 (video only)"
+  set +x
 fi
+log "Segment 2 speed-up done."
 
-# 3. Prepare concat list
+log "Preparing concat list..."
 echo "file '$TMP1'" > "$TMP_LIST"
 echo "file '${TMP2}.spedup.mp4'" >> "$TMP_LIST"
 echo "file '$TMP3'" >> "$TMP_LIST"
+log "Concat list prepared."
 
-# 4. Concatenate all parts
-ffmpeg -y -hide_banner -loglevel error -f concat -safe 0 -i "$TMP_LIST" -c copy "$OUTPUT"
+log "Concatenating all segments into final output..."
+set -x
+ffmpeg -y -hide_banner -f concat -safe 0 -i "$TMP_LIST" -c copy "$OUTPUT" || error_exit "Failed to concatenate segments"
+set +x
 
-echo "Output written to $OUTPUT"
+log "Output written to $OUTPUT"
