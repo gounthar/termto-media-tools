@@ -21,6 +21,10 @@ PAD_VERT=60
 THEME="GitHub"
 BACKGROUND="#ffffff"
 FONT="DejaVu Sans Mono"
+DEFAULT_FONT_SIZE=26
+SHORTLINE_FONT_SIZE=40
+SHORTLINE_PAD_HORIZ=120
+SHORTLINE_PAD_VERT=120
 
 # Detect language from file extension if not provided
 if [ -z "$LANG" ]; then
@@ -76,6 +80,17 @@ if [ -z "$LANG" ]; then
   fi
 fi
 
+# Detect if input is a single short line
+LINECOUNT=$(wc -l < "$INPUT")
+if [ "$LINECOUNT" -le 1 ]; then
+  PAD_HORIZ=40
+  PAD_VERT=40
+  SCALE_FACTOR=3
+  echo "Detected short input ($LINECOUNT line). Will scale up code image by $SCALE_FACTOR x for readability."
+else
+  SCALE_FACTOR=1
+fi
+
 # Build silicon command
 CMD=(silicon "$INPUT" -o "$OUT" --theme "$THEME" --background "$BACKGROUND" --no-window-controls --pad-horiz "$PAD_HORIZ" --pad-vert "$PAD_VERT" --font "$FONT")
 if [ -n "$LANG" ]; then
@@ -85,24 +100,37 @@ fi
 echo "Running: ${CMD[*]}"
 "${CMD[@]}"
 
+# For short lines, scale up the code image before compositing
+if [ "$SCALE_FACTOR" -gt 1 ]; then
+  convert "$OUT" -resize "$((SCALE_FACTOR*100))%" "$OUT"
+fi
+
 # Enforce 16:9 aspect ratio (1920x1080) with a blurred background and window controls using ImageMagick
 
 TMP_BG="${OUT%.png}_bg.png"
 
-# 1. Scale silicon output to 1920px width (preserve aspect ratio)
-convert "$OUT" -resize 1920x "$OUT"
+# 1. For short lines, do NOT upscale the code image; just center it on a 1920x1080 blurred background.
+if [ "$LINECOUNT" -le 1 ]; then
+  # Create blurred, stretched background
+  convert "$OUT" -resize 1920x1080\! -blur 0x20 "$TMP_BG"
+  # Center the (now scaled up) code image
+  convert "$TMP_BG" "$OUT" -gravity center -composite "$OUT"
+else
+  # 1. Scale silicon output to 1920px width (preserve aspect ratio)
+  convert "$OUT" -resize 1920x "$OUT"
 
-# 1b. If height > 1080, scale down to fit within 1920x1080 (preserve aspect ratio)
-HEIGHT=$(identify -format "%h" "$OUT")
-if [ "$HEIGHT" -gt 1080 ]; then
-  convert "$OUT" -resize 1920x1080 "$OUT"
+  # 1b. If height > 1080, scale down to fit within 1920x1080 (preserve aspect ratio)
+  HEIGHT=$(identify -format "%h" "$OUT")
+  if [ "$HEIGHT" -gt 1080 ]; then
+    convert "$OUT" -resize 1920x1080 "$OUT"
+  fi
+
+  # 2. Create blurred, stretched background
+  convert "$OUT" -resize 1920x1080\! -blur 0x20 "$TMP_BG"
+
+  # 3. Overlay the original image, now max 1920x1080, centered
+  convert "$TMP_BG" "$OUT" -gravity center -composite "$OUT"
 fi
-
-# 2. Create blurred, stretched background
-convert "$OUT" -resize 1920x1080\! -blur 0x20 "$TMP_BG"
-
-# 3. Overlay the original image, now max 1920x1080, centered
-convert "$TMP_BG" "$OUT" -gravity center -composite "$OUT"
 
 # 4. Draw window controls (red, yellow, green circles at top left)
 convert "$OUT" \
